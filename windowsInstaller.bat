@@ -13,6 +13,33 @@ if errorlevel 1 (
     exit /b
 )
 
+:: Check for admin rights (required for choco install)
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+  echo ERROR: Please run this installer as Administrator.
+  pause
+  exit /b 1
+)
+
+:: Check if Chocolatey is installed
+where choco >nul 2>&1
+if errorlevel 1 (
+  echo Chocolatey not found. Installing Chocolatey...
+  powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command ^
+    "Set-ExecutionPolicy Bypass -Scope Process -Force; ^
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; ^
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+
+  if errorlevel 1 (
+    echo ERROR: Chocolatey installation failed.
+    pause
+    exit /b 1
+  )
+  echo Chocolatey installed successfully.
+  :: Refresh environment variable so choco works immediately
+  set "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+)
+
 :: Create temp folder for downloads
 set TEMP_DIR=%TEMP%\MagnetHubInstaller
 if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
@@ -58,7 +85,7 @@ if errorlevel 1 (
 
 del source.zip
 
-:: Install dependencies (example with Chocolatey)
+:: Install dependencies
 echo Installing dependencies...
 choco install qt5 -y
 choco install mpv -y
