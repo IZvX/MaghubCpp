@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: PowerShell GUI prompt function template
-set PS_PROMPT=Add-Type -AssemblyName PresentationFramework; $res = [System.Windows.MessageBox]::Show('%1','MagnetHub Installer','YesNo','Question'); if($res -eq 'Yes'){exit 0}else{exit 1}
+set PS_PROMPT=Add-Type -AssemblyFramework; $res = [System.Windows.MessageBox]::Show('%1','MagnetHub Installer','YesNo','Question'); if($res -eq 'Yes'){exit 0}else{exit 1}
 
 :: Prompt to start installation
 powershell -Command "%PS_PROMPT: %1=Do you want to start the MagnetHub installation?%"
@@ -13,31 +13,41 @@ if errorlevel 1 (
     exit /b
 )
 
-:: Check for admin rights (required for choco install)
+:: Check for admin rights (required for Chocolatey install & system-wide changes)
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-  echo ERROR: Please run this installer as Administrator.
-  pause
-  exit /b 1
+    echo ERROR: Please run this installer as Administrator.
+    pause
+    exit /b 1
 )
 
 :: Check if Chocolatey is installed
 where choco >nul 2>&1
 if errorlevel 1 (
-  echo Chocolatey not found. Installing Chocolatey...
-  powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command ^
-    "Set-ExecutionPolicy Bypass -Scope Process -Force; ^
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; ^
-    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+    echo Chocolatey not found. Installing Chocolatey...
+    powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command ^
+        "Set-ExecutionPolicy Bypass -Scope Process -Force; ^
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; ^
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+    if errorlevel 1 (
+        echo ERROR: Chocolatey installation failed.
+        pause
+        exit /b 1
+    )
+    echo Chocolatey installed successfully.
+    :: Refresh PATH so choco is immediately usable
+    set "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+)
 
-  if errorlevel 1 (
-    echo ERROR: Chocolatey installation failed.
-    pause
-    exit /b 1
-  )
-  echo Chocolatey installed successfully.
-  :: Refresh environment variable so choco works immediately
-  set "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+:: Install required dependencies
+echo Installing Qt, mpv, and build tools...
+choco install qt5 -y
+choco install mpv -y
+choco install mingw -y
+
+if errorlevel 1 (
+    echo WARNING: Some dependencies may have failed to install.
+    echo Please check the output above.
 )
 
 :: Create temp folder for downloads
@@ -85,29 +95,24 @@ if errorlevel 1 (
 
 del source.zip
 
-:: Install dependencies
-echo Installing dependencies...
-choco install qt5 -y
-choco install mpv -y
-
-if errorlevel 1 (
-    echo WARNING: Some dependencies may have failed to install.
-)
-
 :: Build project
+echo Building the Qt project...
 cd "%TEMP_DIR%\QtAppSource\repo-main"
+
 qmake
 if errorlevel 1 (
-    echo qmake failed.
+    echo ERROR: qmake failed. Make sure Qt installed correctly.
     pause
     exit /b
 )
+
 mingw32-make
 if errorlevel 1 (
-    echo Build failed.
+    echo ERROR: Build failed. Check your build environment.
     pause
     exit /b
 )
+
 cd /d "%TEMP_DIR%"
 
 :: Ask if keep source code
