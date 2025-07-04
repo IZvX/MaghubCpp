@@ -20,7 +20,7 @@ cd /d "%TEMP_DIR%"
 
 :: Download source ZIP (replace URL)
 echo Downloading source ZIP...
-powershell -Command "Invoke-WebRequest -Uri 'https://yourdomain.com/source.zip' -OutFile 'source.zip'"
+powershell -Command "Invoke-WebRequest -Uri 'https://drive.google.com/uc?export=download&id=17eEuMdWWFDEqFsRdn1djZfwAfNUq7Kct' -OutFile 'source.zip'"
 if errorlevel 1 (
     echo ERROR: Failed to download source.zip.
     pause
@@ -29,7 +29,7 @@ if errorlevel 1 (
 
 :: Download server.zip (replace URL)
 echo Downloading server.zip...
-powershell -Command "Invoke-WebRequest -Uri 'https://yourdomain.com/server.zip' -OutFile 'server.zip'"
+powershell -Command "Invoke-WebRequest -Uri 'https://drive.google.com/uc?export=download&id=17eEuMdWWFDEqFsRdn1djZfwAfNUq7Kct' -OutFile 'server.zip'"
 if errorlevel 1 (
     echo ERROR: Failed to download server.zip.
     pause
